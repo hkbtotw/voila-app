@@ -1,0 +1,1 @@
+web: voila --port=$PORT --no-browser --theme=dark --enable_nbextensions=True Covid19_Voila_Dashboard.ipynb
