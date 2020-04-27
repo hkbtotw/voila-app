@@ -216,7 +216,12 @@ class ReadSheet(object):
         dfSet=pd.concat([pd.DataFrame(dateList),pd.DataFrame(priceList),pd.DataFrame(updateList)],axis=1)
         dfSet.columns=colList
 
-        return dfSet
+        dfSet_1=dfSet.dropna().copy().reset_index()
+        dfSet_2=dfSet_1.drop(columns=['index'])
+
+
+
+        return dfSet_2
 
     def LoadSheet_2(self,sheet):
         listSheet = sheet.get_all_values()
@@ -241,7 +246,11 @@ class ReadSheet(object):
         dfSet=pd.concat([pd.DataFrame(dateList),pd.DataFrame(volumeList),pd.DataFrame(priceList),pd.DataFrame(updateList)],axis=1)
         dfSet.columns=['Date','Volume','Adj Close','UpdateTime']
 
-        return dfSet
+        dfSet_1=dfSet.dropna().copy().reset_index()
+        dfSet_2=dfSet_1.drop(columns=['index'])
+
+
+        return dfSet_2
 
     def ConvertCurrency_2(self,dfIn,category):
         cList=catDict[category]
@@ -306,11 +315,20 @@ class LoadData(object):
             filename=self.filepath1+cList[n]+'.csv'
             #print(cList[n])       
             dfIn[n].to_csv(filename)
-        dfTHB=dfIn[0]['Adj Close'].to_frame()
+        dfTH=dfIn[0]['Adj Close'].to_frame()
       
-        dfTHB=pd.concat([dfTHB,dfIn[1]['Adj Close'].to_frame(),dfIn[2]['Adj Close'].to_frame(),dfIn[3]['Adj Close'].to_frame(),dfIn[4]['Adj Close'].to_frame(),dfIn[5]['Adj Close'].to_frame()], axis=1)
-        dfTHB.columns=['THB_USD', 'EUR','CNY','SGD' ,'HKD', 'JPY']
+        dfTH_1=pd.merge(dfTH,dfIn[1]['Adj Close'].to_frame(), how='outer', on='Date')
+        dfTH_2=pd.merge(dfTH_1,dfIn[2]['Adj Close'].to_frame(), how='outer', on='Date')
+        dfTH_3=pd.merge(dfTH_2,dfIn[3]['Adj Close'].to_frame(), how='outer', on='Date')
+        dfTH_4=pd.merge(dfTH_3,dfIn[4]['Adj Close'].to_frame(), how='outer', on='Date')
+        dfTH_5=pd.merge(dfTH_4,dfIn[5]['Adj Close'].to_frame(), how='outer', on='Date')
         
+        dfTH_5.columns=['THB_USD', 'EUR','CNY','SGD' ,'HKD', 'JPY']
+
+        dfTH_6=dfTH_5.dropna().copy().reset_index()
+        dfTHB=dfTH_6.drop(columns=['index'])       
+
+
         dfTHB['THB_EUR']=dfTHB['THB_USD']/dfTHB['EUR']
         dfTHB['THB_CNY']=dfTHB['THB_USD']/dfTHB['CNY']
         dfTHB['THB_SGD']=dfTHB['THB_USD']/dfTHB['SGD']
