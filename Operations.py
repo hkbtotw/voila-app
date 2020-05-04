@@ -9,7 +9,8 @@ catDict={ 'currency':['THB=X','EURUSD=X','CNY=X','SGD=X' ,'HKD=X', 'JPY=X' ],
                        'oil':['CL=F'] ,
                        #'stock': ['AOT.BK','INTUCH.BK','^SET.BK']
                        'stock': ['AOT.BK','INTUCH.BK'],
-                       'flow':['SET']
+                       'flow':['SET'],
+                       'general':['Inflation','Export','Interest','GDP_growth']
                      }
 
 colDict_1={'Date':1,
@@ -30,6 +31,12 @@ colDict_flow={'Date':1,
         'Investor_Domestic':5,
         'UpdateTime':6
 }
+
+colDict_general={'Date':1,
+        'Percent':2,
+        'UpdateTime':3
+}
+
 
 class ReadSheet(object):
     def __init__(self):
@@ -94,6 +101,18 @@ class ReadSheet(object):
         for n in cList:
             sheetFList.append(client.open("DataScraping_1").worksheet(n))
         return sheetFList
+
+    def Authorization_General(self):
+        try:
+            creds = ServiceAccountCredentials.from_json_keyfile_name(self.secret_path_1, self.scope)
+        except:
+            creds = ServiceAccountCredentials.from_json_keyfile_name(self.secret_path_2, self.scope)
+        client = gspread.authorize(creds) 
+        sheetGList=[]
+        cList=catDict['general']
+        for n in cList:
+            sheetGList.append(client.open("DataScraping_2").worksheet(n))
+        return sheetGList
 
 
     def StrToDate(self,strIn):
@@ -245,7 +264,6 @@ class ReadSheet(object):
             sheet.update_cell(row_index, col_index,message)            
             print('Updated on ', todayStr, ' :: ', nowTime)
 
-
     def LoadSheet_0(self,sheet):
         listSheet = sheet.get_all_values()
         #print(' ==> ',type(listSheet)," :: ",listSheet)
@@ -355,6 +373,32 @@ class ReadSheet(object):
         dfSet_1=dfSet.dropna().copy().reset_index()
         dfSet_2=dfSet_1.drop(columns=['index'])
         return dfSet_2
+
+    def LoadSheet_general(self,sheet):
+        listGSheet = sheet.get_all_values()
+        #print(' ==> ',type(listSheet)," :: ",listSheet)
+        listHash=sheet.get_all_records()
+        #print(' ==> ',type(listHash)," :: ",listHash)
+
+        dfSet=pd.DataFrame()
+        lenList=len(listHash)
+        colList=listGSheet[0]
+        #print(colList)
+        dateList=[]
+        percentList=[]
+        updateTimeList=[]
+        
+
+        for n in range(0,lenList):
+            dateList.append(self.StrToDate(listHash[n][colList[0]]))
+            percentList.append(listHash[n][colList[1]])
+            updateTimeList.append(listHash[n][colList[2]])
+    
+        dfSet=pd.concat([pd.DataFrame(dateList),pd.DataFrame(percentList),pd.DataFrame(updateTimeList)],axis=1)
+        #print(dfSet.columns)
+        dfSet.columns=colList
+
+        return dfSet
 
 
 
