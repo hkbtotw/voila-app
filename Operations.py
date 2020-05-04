@@ -8,7 +8,8 @@ import pytz
 catDict={ 'currency':['THB=X','EURUSD=X','CNY=X','SGD=X' ,'HKD=X', 'JPY=X' ],
                        'oil':['CL=F'] ,
                        #'stock': ['AOT.BK','INTUCH.BK','^SET.BK']
-                       'stock': ['AOT.BK','INTUCH.BK']
+                       'stock': ['AOT.BK','INTUCH.BK'],
+                       'flow':['SET']
                      }
 
 colDict_1={'Date':1,
@@ -22,6 +23,13 @@ colDict_2={'Date':1,
         'UpdateTime':8
 }
 
+colDict_flow={'Date':1,
+        'Inst_Domestic':2,
+        'Security_Company':3,
+        'Investor_Abroad':4,
+        'Investor_Domestic':5,
+        'UpdateTime':6
+}
 
 class ReadSheet(object):
     def __init__(self):
@@ -74,6 +82,18 @@ class ReadSheet(object):
         for n in cList:
             sheetSList.append(client.open("DataCollection_Stock").worksheet(n))
         return sheetSList
+
+    def Authorization_Flow(self):
+        try:
+            creds = ServiceAccountCredentials.from_json_keyfile_name(self.secret_path_1, self.scope)
+        except:
+            creds = ServiceAccountCredentials.from_json_keyfile_name(self.secret_path_2, self.scope)
+        client = gspread.authorize(creds) 
+        sheetFList=[]
+        cList=catDict['flow']
+        for n in cList:
+            sheetFList.append(client.open("DataScraping_1").worksheet(n))
+        return sheetFList
 
 
     def StrToDate(self,strIn):
@@ -169,6 +189,62 @@ class ReadSheet(object):
             sheet.update_cell(row_index, col_index,message)
             print('Updated on ', todayStr, ' :: ', nowTime)
 
+    def InsertNewValue_Flow(self,todayStr, nowDate, nowTime, sheet, dateIn, Inst_Domestic, Security_Company, Investor_Abroad, Investor_Domestic):
+        lenRecords=len(sheet.get_all_values())
+        list_of_hashes=sheet.get_all_records()
+        lenHash=len(list_of_hashes)
+        print(" len : ",lenRecords)
+        lastDate=sheet.cell(lenRecords,1).value
+        print(' lastDate : ',lastDate)
+        lenDate=len(list_of_hashes[lenHash-1]['Date'])
+        if(dateIn == lastDate):
+            todayRow=lenRecords
+            row_index=todayRow
+            col_index=colDict_flow['Inst_Domestic']
+            message=Inst_Domestic
+            sheet.update_cell(row_index, col_index,message)
+            col_index=colDict_flow['Security_Company']
+            message=Security_Company
+            sheet.update_cell(row_index, col_index,message)
+
+            col_index=colDict_flow['Investor_Abroad']
+            message=Investor_Abroad
+            sheet.update_cell(row_index, col_index,message)
+
+            col_index=colDict_flow['Investor_Domestic']
+            message=Investor_Domestic
+            sheet.update_cell(row_index, col_index,message)
+            
+            col_index=colDict_flow['UpdateTime']
+            message=nowTime
+            sheet.update_cell(row_index, col_index,message)
+            print('Updated at ', nowTime)
+        else:
+            todayRow=lenRecords+1
+            row_index=todayRow
+            col_index=colDict_flow['Date']
+            message=dateIn
+            sheet.update_cell(row_index, col_index,message)
+            col_index=colDict_flow['Inst_Domestic']
+            message=Inst_Domestic
+            sheet.update_cell(row_index, col_index,message)
+            col_index=colDict_flow['Security_Company']
+            message=Security_Company
+            sheet.update_cell(row_index, col_index,message)
+
+            col_index=colDict_flow['Investor_Abroad']
+            message=Investor_Abroad
+            sheet.update_cell(row_index, col_index,message)
+
+            col_index=colDict_flow['Investor_Domestic']
+            message=Investor_Domestic
+            sheet.update_cell(row_index, col_index,message)
+            
+            col_index=colDict_flow['UpdateTime']
+            message=nowTime
+            sheet.update_cell(row_index, col_index,message)            
+            print('Updated on ', todayStr, ' :: ', nowTime)
+
 
     def LoadSheet_0(self,sheet):
         listSheet = sheet.get_all_values()
@@ -193,7 +269,6 @@ class ReadSheet(object):
         dfSet.columns=colList
 
         return dfSet
-
 
     def LoadSheet(self,sheet):
         listSheet = sheet.get_all_values()
@@ -248,9 +323,40 @@ class ReadSheet(object):
 
         dfSet_1=dfSet.dropna().copy().reset_index()
         dfSet_2=dfSet_1.drop(columns=['index'])
-
-
         return dfSet_2
+
+    def LoadSheet_flow(self,sheet):
+        listSheet = sheet.get_all_values()
+        #print(' ==> ',type(listSheet)," :: ",listSheet)
+        listHash=sheet.get_all_records()
+        #print(' ==> ',type(listHash)," :: ",listHash)
+
+        dfSet=pd.DataFrame()
+        lenList=len(listHash)
+        colList=listSheet[0]
+        #print(colList)
+        dateList=[]
+        idList=[]
+        scList=[]
+        iaList=[]
+        indList=[]
+        updateList=[]
+        for n in range(0,lenList):
+            dateList.append(self.StrToDate(listHash[n][colList[0]]))
+            idList.append(listHash[n][colList[1]])
+            scList.append(listHash[n][colList[2]])
+            iaList.append(listHash[n][colList[3]])
+            indList.append(listHash[n][colList[4]])
+            updateList.append(listHash[n][colList[5]])
+    
+        dfSet=pd.concat([pd.DataFrame(dateList),pd.DataFrame(idList),pd.DataFrame(scList),pd.DataFrame(iaList),pd.DataFrame(indList),pd.DataFrame(updateList)],axis=1)
+        dfSet.columns=['Date','Inst_Domestic','Security_Company','Investor_Abroad','Investor_Domestic','UpdateTime']
+
+        dfSet_1=dfSet.dropna().copy().reset_index()
+        dfSet_2=dfSet_1.drop(columns=['index'])
+        return dfSet_2
+
+
 
     def ConvertCurrency_2(self,dfIn,category):
         cList=catDict[category]
